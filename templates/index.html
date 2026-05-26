@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SRE Monitoring Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<a href="/history" style="color:white;">
+    View Historical Metrics →
+</a>
+<body>
+
+<div class="container">
+
+    <h1>System Resource Monitoring Dashboard</h1>
+
+    <div class="cards">
+
+        <div class="card">
+            <h2>CPU Usage</h2>
+            <p id="cpu">0%</p>
+        </div>
+
+        <div class="card">
+            <h2>Memory Usage</h2>
+            <p id="memory">0%</p>
+        </div>
+
+        <div class="card">
+            <h2>Disk Usage</h2>
+            <p id="disk">0%</p>
+        </div>
+
+    </div>
+
+    <div class="alert-box" id="alertBox"></div>
+
+    <canvas id="monitorChart"></canvas>
+
+</div>
+
+<script>
+
+const cpuText = document.getElementById("cpu");
+const memoryText = document.getElementById("memory");
+const diskText = document.getElementById("disk");
+const alertBox = document.getElementById("alertBox");
+
+const ctx = document.getElementById('monitorChart');
+
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: 'CPU Usage',
+                data: [],
+                borderWidth: 2
+            },
+            {
+                label: 'Memory Usage',
+                data: [],
+                borderWidth: 2
+            },
+            {
+                label: 'Disk Usage',
+                data: [],
+                borderWidth: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+async function fetchMetrics() {
+
+    const response = await fetch('/metrics');
+    const data = await response.json();
+
+    cpuText.innerText = data.cpu + "%";
+    memoryText.innerText = data.memory + "%";
+    diskText.innerText = data.disk + "%";
+
+    if(data.cpu > 80) {
+        alertBox.innerText = "⚠ High CPU Usage Detected!";
+    } else {
+        alertBox.innerText = "";
+    }
+
+    const currentTime = data.time;
+
+    chart.data.labels.push(currentTime);
+
+    chart.data.datasets[0].data.push(data.cpu);
+    chart.data.datasets[1].data.push(data.memory);
+    chart.data.datasets[2].data.push(data.disk);
+
+    if(chart.data.labels.length > 10) {
+        chart.data.labels.shift();
+
+        chart.data.datasets.forEach(dataset => {
+            dataset.data.shift();
+        });
+    }
+
+    chart.update();
+}
+
+setInterval(fetchMetrics, 3000);
+
+fetchMetrics();
+
+</script>
+
+</body>
+</html>

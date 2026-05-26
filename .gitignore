@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+metrics.csv
+venv/
+prometheus/
+grafana/
+data/
+*.crdownload
+*.zip
+*.exe

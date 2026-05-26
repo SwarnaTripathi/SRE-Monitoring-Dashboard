@@ -1,0 +1,4 @@
+flask
+psutil
+pandas
+prometheus_client

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+
+  - job_name: 'flask-monitor'
+
+    metrics_path: /prometheus
+
+    static_configs:
+      - targets: ['localhost:5000']

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Historical Metrics</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Historical System Metrics</h1>
+
+    <a href="/" style="color:white;">
+        ← Back to Live Dashboard
+    </a>
+
+    <br><br>
+
+    <canvas id="historyChart"></canvas>
+
+    <table border="1"
+           style="width:100%; margin-top:30px; color:white;">
+
+        <tr>
+            <th>Time</th>
+            <th>CPU</th>
+            <th>Memory</th>
+            <th>Disk</th>
+        </tr>
+
+        {% for i in range(times|length) %}
+
+        <tr>
+            <td>{{ times[i] }}</td>
+            <td>{{ cpu[i] }}%</td>
+            <td>{{ memory[i] }}%</td>
+            <td>{{ disk[i] }}%</td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+</div>
+
+<script>
+
+const ctx = document.getElementById('historyChart');
+
+new Chart(ctx, {
+
+    type: 'line',
+
+    data: {
+
+        labels: {{ times | tojson }},
+
+        datasets: [
+
+            {
+                label: 'CPU Usage',
+                data: {{ cpu | tojson }},
+                borderWidth: 2
+            },
+
+            {
+                label: 'Memory Usage',
+                data: {{ memory | tojson }},
+                borderWidth: 2
+            },
+
+            {
+                label: 'Disk Usage',
+                data: {{ disk | tojson }},
+                borderWidth: 2
+            }
+
+        ]
+    },
+
+    options: {
+
+        responsive: true,
+
+        scales: {
+            y: {
+                min: 0,
+                max: 100
+            }
+        }
+    }
+});
+
+</script>
+
+</body>
+</html>
