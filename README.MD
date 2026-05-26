@@ -9,7 +9,6 @@
 [![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io)
 [![Grafana](https://img.shields.io/badge/Grafana-Dashboard-F46800?logo=grafana&logoColor=white)](https://grafana.com)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
-[![CI](https://github.com/SwarnaTripathi/SRE-Monitoring-Dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/SwarnaTripathi/SRE-Monitoring-Dashboard/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <br/>
@@ -65,7 +64,7 @@ The dashboard scrapes CPU, memory, disk, network, and process telemetry every fe
 | 🔒 **Security Headers** | X-Content-Type-Options, X-Frame-Options, CSP headers on all responses |
 | 📦 **Dockerized** | Multi-container deployment with Docker Compose |
 | 📉 **Request Instrumentation** | HTTP latency histograms and request counters per endpoint |
-| 🤖 **CI Pipeline** | GitHub Actions for linting, import verification, and Docker build testing |
+
 
 ---
 
@@ -117,7 +116,6 @@ The dashboard scrapes CPU, memory, disk, network, and process telemetry every fe
 | **Monitoring** | Prometheus | Time-series metrics scraping & alerting |
 | **Visualization** | Grafana | Advanced dashboards and alerting |
 | **Containerization** | Docker, Docker Compose | Multi-service deployment |
-| **CI/CD** | GitHub Actions | Automated linting, testing, and Docker builds |
 
 ---
 
@@ -289,9 +287,6 @@ This project implements several security best practices relevant to **InfoSec an
 
 ```
 SRE-Monitoring-Dashboard/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                # GitHub Actions CI pipeline
 ├── screenshots/                  # Dashboard screenshots
 ├── static/
 │   └── style.css                 # Dashboard styling
