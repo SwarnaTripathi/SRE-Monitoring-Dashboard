@@ -1,0 +1,60 @@
+# Prometheus Alerting Rules
+# These rules define conditions that trigger alerts when SLIs breach thresholds.
+
+groups:
+  - name: system_alerts
+    rules:
+
+      - alert: HighCPUUsage
+        expr: system_cpu_usage_percent > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage has been above 80% for more than 2 minutes (current: {{ $value }}%)"
+
+      - alert: CriticalCPUUsage
+        expr: system_cpu_usage_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is above 95% for more than 1 minute (current: {{ $value }}%)"
+
+      - alert: HighMemoryUsage
+        expr: system_memory_usage_percent > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage has been above 90% for more than 2 minutes (current: {{ $value }}%)"
+
+      - alert: DiskSpaceRunningLow
+        expr: system_disk_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk usage is above 85% (current: {{ $value }}%)"
+
+      - alert: DiskSpaceCritical
+        expr: system_disk_usage_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space critically low"
+          description: "Disk usage is above 95% — immediate action required (current: {{ $value }}%)"
+
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 request latency"
+          description: "95th percentile request latency is above 1 second"

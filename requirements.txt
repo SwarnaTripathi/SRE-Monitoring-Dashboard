@@ -1,4 +1,4 @@
-flask
-psutil
-pandas
-prometheus_client
+flask==3.1.1
+psutil==6.1.1
+pandas==2.2.3
+prometheus_client==0.21.1

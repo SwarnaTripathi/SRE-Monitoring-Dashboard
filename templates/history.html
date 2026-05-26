@@ -1,103 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Historical system metrics — CPU, Memory, Disk usage over time.">
+    <title>Historical Metrics — SRE Dashboard</title>
 
-    <title>Historical Metrics</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
-
 <div class="container">
 
-    <h1>Historical System Metrics</h1>
+    <!-- Header -->
+    <div class="header">
+        <h1>📈 Historical Metrics</h1>
+        <p class="subtitle">Time-series analysis of system resource utilisation</p>
+    </div>
 
-    <a href="/" style="color:white;">
-        ← Back to Live Dashboard
-    </a>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <a href="/" class="nav-link" id="nav-live">📊 Live Dashboard</a>
+        <a href="/history" class="nav-link active" id="nav-history">📈 Historical Data</a>
+        <a href="/prometheus" class="nav-link" id="nav-prom" target="_blank">🔥 Prometheus</a>
+    </nav>
 
-    <br><br>
+    <!-- Chart -->
+    <div class="chart-container">
+        <h2>Resource Usage Over Time <span class="badge">{{ times|length }} samples</span></h2>
+        <canvas id="historyChart" height="100"></canvas>
+    </div>
 
-    <canvas id="historyChart"></canvas>
+    <!-- Data Table -->
+    <div class="table-container">
+        <h2>Raw Telemetry Log</h2>
 
-    <table border="1"
-           style="width:100%; margin-top:30px; color:white;">
+        {% if times|length == 0 %}
+        <p style="color: var(--text-muted); text-align: center; padding: 32px;">
+            No historical data yet. Visit the
+            <a href="/" style="color: var(--accent-blue);">Live Dashboard</a>
+            to start collecting metrics.
+        </p>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Timestamp</th>
+                    <th>CPU %</th>
+                    <th>Memory %</th>
+                    <th>Disk %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(times|length - 1, [times|length - 51, -1]|max, -1) %}
+                <tr>
+                    <td style="color: var(--text-muted);">{{ i + 1 }}</td>
+                    <td>{{ times[i] }}</td>
+                    <td class="{% if cpu[i] > 80 %}text-red{% elif cpu[i] > 60 %}text-amber{% else %}text-green{% endif %}">
+                        {{ cpu[i] }}%
+                    </td>
+                    <td class="{% if memory[i] > 90 %}text-red{% elif memory[i] > 70 %}text-amber{% else %}text-purple{% endif %}">
+                        {{ memory[i] }}%
+                    </td>
+                    <td class="{% if disk[i] > 90 %}text-red{% elif disk[i] > 70 %}text-amber{% else %}text-blue{% endif %}">
+                        {{ disk[i] }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 12px; text-align: center;">
+            Showing last {{ [times|length, 50]|min }} of {{ times|length }} records (newest first)
+        </p>
+        {% endif %}
+    </div>
 
-        <tr>
-            <th>Time</th>
-            <th>CPU</th>
-            <th>Memory</th>
-            <th>Disk</th>
-        </tr>
-
-        {% for i in range(times|length) %}
-
-        <tr>
-            <td>{{ times[i] }}</td>
-            <td>{{ cpu[i] }}%</td>
-            <td>{{ memory[i] }}%</td>
-            <td>{{ disk[i] }}%</td>
-        </tr>
-
-        {% endfor %}
-
-    </table>
+    <!-- Footer -->
+    <div class="footer">
+        SRE Monitoring Dashboard &middot; Built with Flask, Prometheus &amp; Grafana &middot;
+        <a href="https://github.com/SwarnaTripathi/SRE-Monitoring-Dashboard" target="_blank">GitHub ↗</a>
+    </div>
 
 </div>
 
 <script>
-
-const ctx = document.getElementById('historyChart');
+const ctx = document.getElementById('historyChart').getContext('2d');
+const times  = {{ times | tojson }};
+const cpuArr = {{ cpu | tojson }};
+const memArr = {{ memory | tojson }};
+const dskArr = {{ disk | tojson }};
 
 new Chart(ctx, {
-
     type: 'line',
-
     data: {
-
-        labels: {{ times | tojson }},
-
+        labels: times,
         datasets: [
-
             {
-                label: 'CPU Usage',
-                data: {{ cpu | tojson }},
-                borderWidth: 2
+                label: 'CPU %',
+                data: cpuArr,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.08)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: times.length > 50 ? 0 : 2,
             },
-
             {
-                label: 'Memory Usage',
-                data: {{ memory | tojson }},
-                borderWidth: 2
+                label: 'Memory %',
+                data: memArr,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139,92,246,0.06)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: times.length > 50 ? 0 : 2,
             },
-
             {
-                label: 'Disk Usage',
-                data: {{ disk | tojson }},
-                borderWidth: 2
+                label: 'Disk %',
+                data: dskArr,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.06)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: times.length > 50 ? 0 : 2,
             }
-
         ]
     },
-
     options: {
-
         responsive: true,
-
+        maintainAspectRatio: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#94a3b8',
+                    font: { family: "'Inter', sans-serif", size: 12 },
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 20,
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15,23,42,0.9)',
+                titleColor: '#f1f5f9',
+                bodyColor: '#94a3b8',
+                borderColor: 'rgba(148,163,184,0.1)',
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 8,
+            }
+        },
         scales: {
+            x: {
+                ticks: {
+                    color: '#64748b',
+                    font: { size: 11 },
+                    maxTicksLimit: 20,
+                },
+                grid: { color: 'rgba(148,163,184,0.06)' },
+            },
             y: {
                 min: 0,
-                max: 100
+                max: 100,
+                ticks: {
+                    color: '#64748b',
+                    font: { size: 11 },
+                    callback: v => v + '%',
+                },
+                grid: { color: 'rgba(148,163,184,0.06)' },
             }
         }
     }
 });
-
 </script>
 
 </body>

@@ -1,11 +1,15 @@
 global:
   scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - "alerting_rules.yml"
 
 scrape_configs:
-
-  - job_name: 'flask-monitor'
-
+  - job_name: "sre-dashboard"
     metrics_path: /prometheus
-
     static_configs:
-      - targets: ['localhost:5000']
+      - targets: ["localhost:5000"]
+        labels:
+          environment: "development"
+          team: "sre"

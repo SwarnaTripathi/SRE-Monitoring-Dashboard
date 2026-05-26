@@ -1,10 +1,40 @@
+# Python
 __pycache__/
 *.pyc
-metrics.csv
+*.pyo
+*.egg-info/
+dist/
+build/
 venv/
-prometheus/
-grafana/
-data/
+.venv/
+env/
+
+# Metrics data
+metrics.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Downloads / binaries
 *.crdownload
 *.zip
 *.exe
+*.tar.gz
+
+# Docker volumes (local)
+prometheus/
+grafana/
+data/
+
+# Secrets
+.env
+*.pem
+*.key

@@ -1,127 +1,264 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time SRE Monitoring Dashboard — CPU, Memory, Disk, Network telemetry with Prometheus integration.">
     <title>SRE Monitoring Dashboard</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<a href="/history" style="color:white;">
-    View Historical Metrics →
-</a>
-<body>
 
+<body>
 <div class="container">
 
-    <h1>System Resource Monitoring Dashboard</h1>
-
-    <div class="cards">
-
-        <div class="card">
-            <h2>CPU Usage</h2>
-            <p id="cpu">0%</p>
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ SRE Monitoring Dashboard</h1>
+        <p class="subtitle">Real-time system observability &amp; alerting platform</p>
+        <div class="hostname">
+            <span class="status-dot"></span>
+            {{ hostname }}
         </div>
-
-        <div class="card">
-            <h2>Memory Usage</h2>
-            <p id="memory">0%</p>
-        </div>
-
-        <div class="card">
-            <h2>Disk Usage</h2>
-            <p id="disk">0%</p>
-        </div>
-
     </div>
 
-    <div class="alert-box" id="alertBox"></div>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <a href="/" class="nav-link active" id="nav-live">📊 Live Dashboard</a>
+        <a href="/history" class="nav-link" id="nav-history">📈 Historical Data</a>
+        <a href="/system" class="nav-link" id="nav-system" target="_blank">🖥️ System Info</a>
+        <a href="/health" class="nav-link" id="nav-health" target="_blank">💚 Health Check</a>
+    </nav>
 
-    <canvas id="monitorChart"></canvas>
+    <!-- Alert Box -->
+    <div class="alert-box" id="alertBox" role="alert"></div>
+
+    <!-- Metric Cards -->
+    <div class="cards">
+        <div class="card cpu" id="card-cpu">
+            <div class="card-icon">🔵</div>
+            <div class="card-label">CPU Usage</div>
+            <div class="card-value" id="cpu">—</div>
+            <div class="card-detail" id="cpu-detail">Sampling...</div>
+        </div>
+
+        <div class="card memory" id="card-memory">
+            <div class="card-icon">🟣</div>
+            <div class="card-label">Memory Usage</div>
+            <div class="card-value" id="memory">—</div>
+            <div class="card-detail" id="memory-detail">Sampling...</div>
+        </div>
+
+        <div class="card disk" id="card-disk">
+            <div class="card-icon">🟡</div>
+            <div class="card-label">Disk Usage</div>
+            <div class="card-value" id="disk">—</div>
+            <div class="card-detail" id="disk-detail">Sampling...</div>
+        </div>
+
+        <div class="card network" id="card-network">
+            <div class="card-icon">🔷</div>
+            <div class="card-label">Network I/O</div>
+            <div class="card-value" id="network">—</div>
+            <div class="card-detail" id="network-detail">Sent / Received</div>
+        </div>
+
+        <div class="card swap" id="card-swap">
+            <div class="card-icon">🟢</div>
+            <div class="card-label">Swap Usage</div>
+            <div class="card-value" id="swap">—</div>
+            <div class="card-detail" id="swap-detail">Sampling...</div>
+        </div>
+
+        <div class="card process" id="card-process">
+            <div class="card-icon">⚙️</div>
+            <div class="card-label">Processes</div>
+            <div class="card-value" id="processes">—</div>
+            <div class="card-detail" id="process-detail">Running</div>
+        </div>
+    </div>
+
+    <!-- Real-time Chart -->
+    <div class="chart-container">
+        <h2>Resource Utilisation Timeline <span class="badge">● LIVE</span></h2>
+        <canvas id="monitorChart" height="100"></canvas>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        SRE Monitoring Dashboard &middot; Built with Flask, Prometheus &amp; Grafana &middot;
+        <a href="https://github.com/SwarnaTripathi/SRE-Monitoring-Dashboard" target="_blank">GitHub ↗</a>
+    </div>
 
 </div>
 
 <script>
+// DOM Elements
+const cpuEl         = document.getElementById("cpu");
+const memoryEl      = document.getElementById("memory");
+const diskEl        = document.getElementById("disk");
+const networkEl     = document.getElementById("network");
+const swapEl        = document.getElementById("swap");
+const processesEl   = document.getElementById("processes");
+const alertBox      = document.getElementById("alertBox");
 
-const cpuText = document.getElementById("cpu");
-const memoryText = document.getElementById("memory");
-const diskText = document.getElementById("disk");
-const alertBox = document.getElementById("alertBox");
+const cpuDetail     = document.getElementById("cpu-detail");
+const memoryDetail  = document.getElementById("memory-detail");
+const networkDetail = document.getElementById("network-detail");
+const swapDetail    = document.getElementById("swap-detail");
 
-const ctx = document.getElementById('monitorChart');
+const CPU_THRESHOLD    = {{ cpu_threshold }};
+const MEMORY_THRESHOLD = {{ memory_threshold }};
+const SCRAPE_MS        = {{ scrape_interval }};
 
+// Chart Setup
+const ctx = document.getElementById('monitorChart').getContext('2d');
 const chart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: [],
         datasets: [
             {
-                label: 'CPU Usage',
+                label: 'CPU %',
                 data: [],
-                borderWidth: 2
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.08)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5,
             },
             {
-                label: 'Memory Usage',
+                label: 'Memory %',
                 data: [],
-                borderWidth: 2
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139,92,246,0.06)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5,
             },
             {
-                label: 'Disk Usage',
+                label: 'Disk %',
                 data: [],
-                borderWidth: 2
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.06)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5,
             }
         ]
     },
     options: {
         responsive: true,
+        maintainAspectRatio: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#94a3b8',
+                    font: { family: "'Inter', sans-serif", size: 12 },
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 20,
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15,23,42,0.9)',
+                titleColor: '#f1f5f9',
+                bodyColor: '#94a3b8',
+                borderColor: 'rgba(148,163,184,0.1)',
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 8,
+            }
+        },
         scales: {
+            x: {
+                ticks: { color: '#64748b', font: { size: 11 } },
+                grid: { color: 'rgba(148,163,184,0.06)' },
+            },
             y: {
                 beginAtZero: true,
-                max: 100
+                max: 100,
+                ticks: {
+                    color: '#64748b',
+                    font: { size: 11 },
+                    callback: v => v + '%',
+                },
+                grid: { color: 'rgba(148,163,184,0.06)' },
             }
         }
     }
 });
 
-async function fetchMetrics() {
-
-    const response = await fetch('/metrics');
-    const data = await response.json();
-
-    cpuText.innerText = data.cpu + "%";
-    memoryText.innerText = data.memory + "%";
-    diskText.innerText = data.disk + "%";
-
-    if(data.cpu > 80) {
-        alertBox.innerText = "⚠ High CPU Usage Detected!";
-    } else {
-        alertBox.innerText = "";
-    }
-
-    const currentTime = data.time;
-
-    chart.data.labels.push(currentTime);
-
-    chart.data.datasets[0].data.push(data.cpu);
-    chart.data.datasets[1].data.push(data.memory);
-    chart.data.datasets[2].data.push(data.disk);
-
-    if(chart.data.labels.length > 10) {
-        chart.data.labels.shift();
-
-        chart.data.datasets.forEach(dataset => {
-            dataset.data.shift();
-        });
-    }
-
-    chart.update();
+// Helper — update card state
+function setCritical(cardId, isCritical) {
+    const card = document.getElementById(cardId);
+    if (isCritical) card.classList.add('critical');
+    else card.classList.remove('critical');
 }
 
-setInterval(fetchMetrics, 3000);
+// Fetch & render
+async function fetchMetrics() {
+    try {
+        const res = await fetch('/metrics');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
 
+        // Update values
+        cpuEl.textContent       = d.cpu + '%';
+        memoryEl.textContent    = d.memory + '%';
+        diskEl.textContent      = d.disk + '%';
+        networkEl.textContent   = d.net_sent_mb + ' MB';
+        swapEl.textContent      = d.swap + '%';
+        processesEl.textContent = d.processes;
+
+        // Update details
+        cpuDetail.textContent     = 'Threshold: ' + CPU_THRESHOLD + '%';
+        memoryDetail.textContent  = d.memory_used_gb + ' / ' + d.memory_total_gb + ' GB';
+        networkDetail.textContent = '↑ ' + d.net_sent_mb + ' MB  ↓ ' + d.net_recv_mb + ' MB';
+        swapDetail.textContent    = 'Virtual memory overflow';
+
+        // Card alert states
+        setCritical('card-cpu',    d.cpu > CPU_THRESHOLD);
+        setCritical('card-memory', d.memory > MEMORY_THRESHOLD);
+
+        // Alert box
+        if (d.alerts && d.alerts.length > 0) {
+            alertBox.className = 'alert-box alert-danger visible';
+            alertBox.innerHTML = '🚨 ' + d.alerts.join(' &nbsp;|&nbsp; ');
+        } else {
+            alertBox.className = 'alert-box alert-ok visible';
+            alertBox.innerHTML = '✅ All systems nominal';
+        }
+
+        // Update chart
+        chart.data.labels.push(d.time);
+        chart.data.datasets[0].data.push(d.cpu);
+        chart.data.datasets[1].data.push(d.memory);
+        chart.data.datasets[2].data.push(d.disk);
+
+        if (chart.data.labels.length > 20) {
+            chart.data.labels.shift();
+            chart.data.datasets.forEach(ds => ds.data.shift());
+        }
+        chart.update('none');
+
+    } catch (err) {
+        alertBox.className = 'alert-box alert-danger visible';
+        alertBox.innerHTML = '⚠️ Connection lost — retrying...';
+        console.error('Fetch error:', err);
+    }
+}
+
+setInterval(fetchMetrics, SCRAPE_MS);
 fetchMetrics();
-
 </script>
 
 </body>
